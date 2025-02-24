@@ -1,0 +1,146 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+  <title>Secure Chat App</title>
+</head>
+
+<body>
+  <div id="main-container">
+    <nav>
+      <div class="nav__header">
+        <div class="nav__logo">
+          <a href="{% url 'chat:index' username %}" class="logo">Secure Chat</a>
+        </div>
+        <div class="nav__menu__btn" id="menu-btn">
+          <i class="ri-menu-line"></i>
+        </div>
+      </div>
+      <ul class="nav__links" id="nav-links">
+        {% with current_url=request.get_full_path %}
+        {% url 'chat:index' username as url %}
+        <li class="{% if current_url == url %} active-menu {%endif%}">
+          <a href="{{url}}">Home</a>
+        </li>
+        {% url 'chat:chatRoom' username as url %}
+        <li class="{% if current_url == url %} active-menu {%endif%}">
+          <a href="{{url}}">Chat</a>
+        </li>
+        {% endwith %}
+      </ul>
+      <div class="nav__notification" id="nav-notification">
+        {% if username %}
+        <div class="user-container">
+          <div id="systemuser">{{username}}</div>
+          <div class="display-none" id="user-settings">
+            <div class="logout-user" id="logout-user">Logout</div>
+            <!-- <hr style="margin: 10px 0;" /> -->
+            <!-- <div class="deregister-user" id="deregister-user">Deregister</div> -->
+          </div>
+        </div>
+        {% else %}
+        <a href="{% url 'chat:login' %}">Login</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <!-- <header class="section__container header__container" id="home">
+      <div class="header__image">
+        <img src="{% static 'images/header.png' %}" alt="header" />
+      </div>
+      <div class="header__content">
+        <div>
+          <h1>Online And Live Auctions</h1>
+        </div>
+      </div>
+    </header> -->
+
+    {% block content %}{% endblock %}
+
+  </div>
+
+
+  <footer class="footer" id="contact">
+    <div class="footer__bar">
+      Copyright © Mac 2024. <span class="footer-span">ENCS-691 Fall-2024 Project</span>
+    </div>
+  </footer>
+
+  <script>
+    let user = document.getElementById('systemuser')
+    user && (user.onclick = function (e) {
+      let logoutBlock = document.getElementById('user-settings')
+      let displayState = logoutBlock.style.display
+      logoutBlock.style.display = 'none'
+      if(displayState !== 'block'){
+        logoutBlock.style.display = 'block' 
+        setTimeout(() => {
+          logoutBlock.style.display = 'none'
+        }, 5000);
+      }
+    })
+    
+    let modalTemplate = document.getElementById('modal-template');
+    let confirmButton = document.getElementById('confirm-button');
+    let modalTitle = document.getElementsByClassName("modal-title");
+    let modalContent = document.getElementById("modal-content");
+    let modalFooter = document.getElementById('modal-footer')
+
+    let modalDetail = [
+      {
+        title: 'Logout',
+        url: "/accounts/logout",
+        trigger: document.getElementsByClassName('logout-user'),
+        content: `You are about logout`
+      },
+
+      {
+        title: 'Deregister',
+        url: "/accounts/deregister",
+        trigger: document.getElementsByClassName('deregister-user'),
+        content: `You are about Deregister`
+      },
+
+      {
+        title: 'Delete Partitcipant',
+        url: "",
+        trigger: document.getElementsByClassName('participant__delete'),
+        content: `You are about to delete the participant`
+      },
+
+      {
+        title: 'Notifications',
+        trigger: document.getElementsByClassName('notification-icon'),
+        hideFooter: true
+      }
+    ]
+
+    displayModal(modalDetail);
+
+    function displayModal(modalDetail) {
+      for (const item of modalDetail) {
+        if (!item.trigger) return
+        for (let element of item.trigger) {
+          element.onclick = function (ele) {
+            let paramId = ele.target.getAttribute('paramId') || ''
+            let url = ele.target.getAttribute('url') || ''
+            url && (item.url = url)
+            item.title && (modalTitle.innerHTML = item.title)
+            item.content && (modalContent.innerHTML = item.content)
+            item.url && confirmButton.setAttribute('href', `${item.url}${paramId}`)
+            item.hideFooter ? (modalFooter.style.display = 'none') : (modalFooter.style.display = '')
+            modalTemplate.style.display = 'block';
+          }
+        }
+      }
+    }
+  </script>
+  <script src="{% static 'js/htmx.min.js' %}"></script>
+</body>
+
+</html>

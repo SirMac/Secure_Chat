@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+<section class="section__container product__container" id="product">
+    {% include "message.html" %}
+    {% if pageOptions %}
+    <h4 class="section__header">{{pageOptions.header}}</h4>
+    {% if onlineUsers %}
+    <div class="product__grid">
+        {% for user in onlineUsers %}
+        <div class="product__card">
+            <div class="auction__btn">
+                <div class="btn-div">
+                    <a class="bid-btn" href="{% url 'chat:chatRoom' username %}">
+                        Chat
+                    </a>
+                </div>
+            </div>
+            <h3>{{user.username}}</h3>
+            <p>Status: {{user.status}}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="auction-notice">No online users available</div>
+    {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

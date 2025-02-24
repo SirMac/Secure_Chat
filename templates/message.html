@@ -1,0 +1,9 @@
+<div style="width_: 100%; text-align: center; padding-bottom: 20px;">
+    {% if messages %}
+        {% for message in messages %}
+        <p class="{{ message.tags }}" style="text-align: center;">
+            <strong>{{ message }}</strong>
+        </p>
+        {% endfor %}
+    {% endif %}
+</div>
