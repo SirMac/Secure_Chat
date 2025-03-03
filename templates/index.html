@@ -13,7 +13,7 @@
         <div class="product__card">
             <div class="auction__btn">
                 <div class="btn-div">
-                    <a class="bid-btn" href="{% url 'chat:chatRoom' username %}">
+                    <a class="bid-btn" href="{% url 'chat:chatRoom' username %}?connectwith={{user.username}}">
                         Chat
                     </a>
                 </div>

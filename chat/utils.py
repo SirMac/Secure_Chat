@@ -1,11 +1,10 @@
-from .models import SystemUsers
-
+from .models import SystemUsers, Room
+from django.db.models import Q
 
 def updateSystemUser(username, status):
     if not username or not status:
         return None
     
-    print('user:', username)
     user = SystemUsers.objects.filter(username=username)
     
     if len(user) == 0:
@@ -16,6 +15,23 @@ def updateSystemUser(username, status):
     user = user[0]
     user.status = status
     user.save()
+
+
+def createChatGroup(user1, user2):
+    groupName = f'{user1.lower()}_{user2.lower()}'
+    groupName2 = f'{user2.lower()}_{user1.lower()}'
+    Room.objects.create(room_name=groupName, description=groupName2, status='active')
+    return groupName
+
+
+def getChatGroup(user1, user2):
+    groupName = f'{user1.lower()}_{user2.lower()}'
+    group = Room.objects.filter(Q(room_name=groupName)|Q(description=groupName))
+
+    if len(group) == 0:
+        return createChatGroup(user1, user2)
+    
+    return group[0]
 
 
 
