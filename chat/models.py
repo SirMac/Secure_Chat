@@ -17,6 +17,7 @@ class Message(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     sender = models.CharField(max_length=50)
     receiver = models.CharField(max_length=50)
+    type = models.CharField(max_length=50)
     message = models.TextField()
     createdat = models.DateTimeField(default=timezone.now)
 

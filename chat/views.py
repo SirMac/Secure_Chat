@@ -47,6 +47,7 @@ def chatRoom(request, username):
         "messages": get_messages,
         "username": username,
         "room_name": existing_room.room_name,
+        "partner": partner
     }
 
     return render(request, "room.html", context)

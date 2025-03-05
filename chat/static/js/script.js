@@ -1,3 +1,4 @@
+
 async function makeAPIcall(options) {
     const { url, method, body, headers } = options
     if (!url || !method || !headers) {
@@ -31,20 +32,25 @@ async function makeAPIcall(options) {
 }
 
 
+async function showMessage(type, sender, username, message) {
+    const whitelist = ['publickey', 'publickey-reply']
+    for (const item of whitelist) {
+        if (type == item) return
+    }
 
-
-
-async function showMessage(sender, username, message) {
     const chats_div = document.getElementById("chats-container")
-    const plainText = await decryptAES(message, 'abcdfegnqoie1234', 'initializationve')
+    let plainText = message
+    if (type == 'message') {
+        plainText = await decryptAES(message, crypto_key, crypto_iv)
+    }
     if (sender == username) {
         chats_div.innerHTML += `<div class="single-message sent">
-          <div class="msg-body">${message}</div>
+          <div class="msg-body">${plainText}</div>
           <p class="sender">Me</p>
         </div>`;
     } else {
         chats_div.innerHTML += `<div class="single-message">
-          <div class="msg-body">${message}</div>
+          <div class="msg-body">${plainText}</div>
           <p class="sender">${sender}</p>
         </div>`;
     }
@@ -52,7 +58,32 @@ async function showMessage(sender, username, message) {
 
 
 
+function handshake(socket, data) {
+    let sender = data["sender"]
+    let content = data["message"]
+    let type = data["type"]
 
+    if (type == 'publickey') {
+        if (sender !== "{{username}}") {
+            sessionStorage.setItem(`publicKeyB`, content)
+            const publicKey = sessionStorage.getItem('publicKey')
+            socket.send(
+                JSON.stringify({
+                    message: publicKey,
+                    room_name: "{{room_name}}",
+                    sender: "{{username}}",
+                    type: 'publickey-reply'
+                })
+            );
+        }
+    }
+
+    if (type == 'publickey-reply') {
+        if (sender !== "{{username}}") {
+            sessionStorage.setItem(`publicKeyB`, content)
+        }
+    }
+}
 
 
 

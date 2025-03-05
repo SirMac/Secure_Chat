@@ -28,19 +28,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def send_message(self, event):
         data = event["message"]
-        await self.create_message(data=data)
 
-        response = {"sender": data["sender"], "message": data["message"]}
+        if data['type'] == 'message':
+            await self.create_message(data=data)
+        
+        response = {
+            "sender": data['sender'],
+            "message": data['message'],
+            "type": data['type']
+        }
 
         await self.send(text_data=json.dumps({"message": response}))
 
     @database_sync_to_async
     def create_message(self, data):
         get_room = Room.objects.get(room_name=data["room_name"])
+        messageType = data['type']
+        if not messageType:
+            messageType = 'message'
 
         if not Message.objects.filter(
             message=data["message"], sender=data["sender"]
         ).exists():
             new_message = Message.objects.create(
-                room=get_room, message=data["message"], sender=data["sender"]
+                room=get_room, message=data["message"], 
+                sender=data["sender"],
+                type=messageType
             )
+            return new_message
