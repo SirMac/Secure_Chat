@@ -79,36 +79,13 @@
     let type = data["type"]
 
     await handshake(socket, data)
+    await dhKeyExchange(socket, data)
     
-    // if (type == 'publickey') {
-    //   if (sender !== "{{username}}") {
-    //     sessionStorage.setItem(`publicKeyB`, content)
-    //     const publicKey = sessionStorage.getItem('publicKey')
-    //     socket.send(
-    //       JSON.stringify({
-    //         message: publicKey,
-    //         room_name: "{{room_name}}",
-    //         sender: "{{username}}",
-    //         type: 'publickey-reply'
-    //       })
-    //     );
-    //   }
-    // }
-
-    // if (type == 'publickey-reply') {
-    //   if (sender !== "{{username}}") {
-    //     sessionStorage.setItem(`publicKeyB`, content)
-    //   }
-    // }
-
 
     if (sender == "{{username}}") {
       document.getElementById("message").value = ""
     }
 
-    // if (sender == "{{username}}") {
-    //   document.getElementById("message").value = ""
-    // }
 
     await showMessage(type, sender, "{{username}}", content)
 
@@ -116,6 +93,7 @@
 
   });
 
+  
   // display chat on reload
   document.addEventListener('DOMContentLoaded', async function () {
 

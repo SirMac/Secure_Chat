@@ -226,36 +226,10 @@ function power(base, exp, mod) {
 
 // Function to perform Diffie-Hellman key exchange
 function diffieHellman(p, g, privateKey) {
-    // Generate public key
-    const publicKey = power(g, privateKey, p);
-
     return {
-        publicKey: publicKey,
-        generateSecret: function (otherPublicKey) {
+        dhPublicKey: power(g, privateKey, p),
+        dhGenerateSecret: function (otherPublicKey) {
             return power(otherPublicKey, privateKey, p);
         },
     };
 }
-
-// Example Usage
-
-
-// Alice's Key Exchange
-const alice = diffieHellman(p, g, 6); // Alice's private key is 6
-// Bob's Key Exchange
-const bob = diffieHellman(p, g, 15);   // Bob's private key is 15
-
-// Exchange public keys (insecure channel)
-const alicePublicKey = alice.publicKey;
-const bobPublicKey = bob.publicKey;
-
-// Generate shared secrets
-const aliceSecret = hashMessage(alice.generateSecret(bobPublicKey)).then((hash) => {
-    console.log("Alice's Secret Key:", hash.hashHex);
-});
-const bobSecret = hashMessage(bob.generateSecret(alicePublicKey)).then((hash) => {
-    console.log("Bob's Secret Key:", hash.hashHex);
-});
-
-
-// console.log("Shared secrets are equal:", aliceSecret === bobSecret);

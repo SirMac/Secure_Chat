@@ -33,12 +33,15 @@
         if(!keyPair) return
         const publicKey = await exportRSAKey(keyPair.publicKey, 'spki')
         const privateKey = await exportRSAKey(keyPair.privateKey, 'pkcs8')
+        const privateKeyDH = generateRandomNumber()
         sessionStorage.setItem('publicKey', publicKey)
         sessionStorage.setItem('privateKey', privateKey)
-        let keyField = document.getElementById('publicKey')
-        keyField && (keyField.setAttribute('value', publicKey))
+        sessionStorage.setItem('privateKeyDH', privateKeyDH)
+        // let keyField = document.getElementById('publicKey')
+        // keyField && (keyField.setAttribute('value', publicKey))
       })
     </script>
     <script src="{% static 'js/crypto.js' %}"></script>
+    <script src="{% static 'js/script.js' %}"></script>
   </body>
 </html>
