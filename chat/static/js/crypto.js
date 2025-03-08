@@ -2,6 +2,11 @@ const crypto_key = '000102030405060708090a0b0c0d0e0f'; // test 16 bytes key
 const crypto_iv = '18191a1b1c1d1e1f'; // test 16 bytes
 const p = 23; // A large prime number
 const g = 5;  // A primitive root modulo p
+const rsapss_salt_len = 16
+const rsa_publickey_format = 'spki'
+const rsa_privatekey_format = 'pkcs8'
+const rsa_algorithm = 'RSA-PSS'
+const hash_algorithm = 'SHA-256'
 
 
 async function generateRSAKeys() {
@@ -10,7 +15,7 @@ async function generateRSAKeys() {
             name: "RSA-OAEP",
             modulusLength: 2048,
             publicExponent: new Uint8Array([1, 0, 1]),
-            hash: "SHA-256",
+            hash: hash_algorithm,
         },
         true,
         ["encrypt", "decrypt"],
@@ -18,19 +23,80 @@ async function generateRSAKeys() {
     return keyPair
 }
 
-async function exportKey(key, format) {
+
+function stringToArrayBuffer(str) {
+    const buf = new ArrayBuffer(str.length);
+    const bufView = new Uint8Array(buf);
+    for (let i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
+
+
+function base64ToBuffer(base64){
+    const base64Binary = window.atob(base64);
+    return stringToArrayBuffer(base64Binary)
+}
+
+
+function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
+    let pemHeader = "-----BEGIN PUBLIC KEY-----";
+    let pemFooter = "-----END PUBLIC KEY-----";
+    if (format == rsa_privatekey_format) {
+        pemHeader = "-----BEGIN PRIVATE KEY-----";
+        pemFooter = "-----END PRIVATE KEY-----";
+    }
+    const pemContents = pem.substring(
+        pemHeader.length,
+        pem.length - pemFooter.length - 1,
+    );
+    return base64ToBuffer(pemContents);
+}
+
+
+async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
+    // let pemHeader = "-----BEGIN PUBLIC KEY-----";
+    // let pemFooter = "-----END PUBLIC KEY-----";
+    // if (format == rsa_privatekey_format) {
+    //     pemHeader = "-----BEGIN PRIVATE KEY-----";
+    //     pemFooter = "-----END PRIVATE KEY-----";
+    // }
+    // const pemContents = pem.substring(
+    //     pemHeader.length,
+    //     pem.length - pemFooter.length - 1,
+    // );
+    const binaryDer = rsaKeyToBuffer(pem, format)
+    // const binaryDer = stringToArrayBuffer(binaryDerString);
+
+    const importedKey = await window.crypto.subtle.importKey(
+        format,
+        binaryDer,
+        {
+            name: rsa_algorithm,
+            hash: hash_algorithm,
+        },
+        true,
+        [usage],
+    );
+    return importedKey
+}
+
+
+
+async function exportRSAKey(key, format) {
     const exported = await window.crypto.subtle.exportKey(
-      format, // "spki" (public key) or "pkcs8" (private key)
-      key
+        format, // "spki" (public key) or "pkcs8" (private key)
+        key
     );
     const exportedAsString = String.fromCharCode(...new Uint8Array(exported));
     const exportedAsBase64 = btoa(exportedAsString);
     const pemHeader = format === "spki" ? "-----BEGIN PUBLIC KEY-----" : "-----BEGIN PRIVATE KEY-----";
     const pemFooter = format === "spki" ? "-----END PUBLIC KEY-----" : "-----END PRIVATE KEY-----";
     const pemExported = pemHeader + "\n" + exportedAsBase64 + "\n" + pemFooter;
-  
+
     return pemExported;
-  }
+}
 
 
 async function encodeKey(key) {
@@ -53,7 +119,6 @@ function getCryptoOption(iv) {
 }
 
 async function encryptAES(plainText, key, iv) {
-    console.log('encryptAES: ', key, iv)
     const encoder = new TextEncoder();
     const keyData = await encodeKey(key)
 
@@ -90,14 +155,60 @@ async function decryptAES(cipherText, key, iv) {
 
 async function hashMessage(text) {
     const msgUint8 = new TextEncoder().encode(text);
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8);
+    const hashBuffer = await window.crypto.subtle.digest(hash_algorithm, msgUint8);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
-    return hashHex;
+
+    return {
+        hashHex,
+        hashBuffer
+    }
 }
 
+
+
+async function digitalSignMessage(message, privateKey) {
+    const { hashBuffer } = await hashMessage(message)
+
+    const key = await importRSAKey(privateKey)
+    const signatureBuffer = await crypto.subtle.sign(
+        {
+            name: rsa_algorithm,
+            saltLength: rsapss_salt_len
+        },
+        key,
+        hashBuffer
+    );
+    // console.log('signatureBuffer: ', signatureBuffer)
+    // const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+    // const signatureHex = signatureArray
+    //     .map(b => b.toString(16)
+    //         .padStart(2, '0'))
+    //     .join('');
+    // console.log('signatureBuffer2: ', stringToArrayBuffer(signatureHex))
+    const exportedAsString = String.fromCharCode(...new Uint8Array(signatureBuffer));
+    const exportedAsBase64 = btoa(exportedAsString);
+    return exportedAsBase64
+}
+
+
+async function verifySignature(publicKey, signature, data) {
+    const signatureBuffer = base64ToBuffer(signature)
+    let importedKey = await importRSAKey(publicKey, 'verify', rsa_publickey_format)
+    const { hashBuffer } = await hashMessage(data)
+
+    return await window.crypto.subtle.verify(
+        {
+            name: rsa_algorithm,
+            saltLength: rsapss_salt_len,
+        },
+        importedKey,
+        signatureBuffer,
+        hashBuffer,
+    );
+}
 
 
 // Function to calculate (base^exp) % mod
@@ -140,10 +251,10 @@ const bobPublicKey = bob.publicKey;
 
 // Generate shared secrets
 const aliceSecret = hashMessage(alice.generateSecret(bobPublicKey)).then((hash) => {
-    console.log("Alice's Secret Key:", hash);
+    console.log("Alice's Secret Key:", hash.hashHex);
 });
 const bobSecret = hashMessage(bob.generateSecret(alicePublicKey)).then((hash) => {
-    console.log("Bob's Secret Key:", hash);
+    console.log("Bob's Secret Key:", hash.hashHex);
 });
 
 

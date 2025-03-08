@@ -5,11 +5,9 @@
 <div class="room-container">
   <div class="content">
     <h3 class="center">Secure chat between {{username}} and {{partner}}</h3>
-    <div class="chats-container" id="chats-container">
-
-    </div>
+    <div class="chats-container" id="chats-container"></div>
+    <div class="error center" id="message-log"></div>
     <form action="" id="msg-form" method="post">
-      <!-- For the sake of security, all Django Post forms must have a csfr token tag -->
       {% csrf_token %}
       <textarea name="message" id="message" cols="30" rows="10" placeholder="Enter your message"></textarea>
 
@@ -20,15 +18,19 @@
 
 <script>
 
+
+  sessionStorage.setItem('partner', '{{partner}}')
+  sessionStorage.setItem('roomname', '{{room_name}}')
+
   const socketURL = `ws://${window.location.host}/ws/messages/{{room_name}}/`;
-  console.log("Establishing Socket Connection", socketURL)
+  console.log("Establishing Socket Connection... ")
   const socket = new WebSocket(socketURL)
   socket.onerror = function (err) {
     console.log('socket-connection-error:', err)
     // socket.close()
   }
   socket.onopen = function (e) {
-    console.log("Successfully connected to the WebSocket.", e);
+    console.log("Successfully connected to the WebSocket.");
     const publicKey = sessionStorage.getItem('publicKey')
     socket.send(
       JSON.stringify({
@@ -65,7 +67,7 @@
     chats_div.scrollTop = chats_div.scrollHeight;
   }
 
-
+  
   // Recieve Message from the backend
   socket.addEventListener("message", async (e) => {
     const data = JSON.parse(e.data)["message"]
@@ -76,7 +78,8 @@
     let content = data["message"]
     let type = data["type"]
 
-    handshake(socket, data)
+    await handshake(socket, data)
+    
     // if (type == 'publickey') {
     //   if (sender !== "{{username}}") {
     //     sessionStorage.setItem(`publicKeyB`, content)

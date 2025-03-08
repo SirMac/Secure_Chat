@@ -31,8 +31,8 @@
       document.addEventListener('DOMContentLoaded', async function () {
         const keyPair = await generateRSAKeys()
         if(!keyPair) return
-        const publicKey = await exportKey(keyPair.publicKey, 'spki')
-        const privateKey = await exportKey(keyPair.privateKey, 'pkcs8')
+        const publicKey = await exportRSAKey(keyPair.publicKey, 'spki')
+        const privateKey = await exportRSAKey(keyPair.privateKey, 'pkcs8')
         sessionStorage.setItem('publicKey', publicKey)
         sessionStorage.setItem('privateKey', privateKey)
         let keyField = document.getElementById('publicKey')

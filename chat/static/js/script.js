@@ -32,8 +32,13 @@ async function makeAPIcall(options) {
 }
 
 
+function logMessage(message){
+    const errorMsgField = document.getElementById('message-log')
+    errorMsgField && (errorMsgField.innerHTML = message)
+}
+
 async function showMessage(type, sender, username, message) {
-    const whitelist = ['publickey', 'publickey-reply']
+    const whitelist = ['publickey', 'publickey-reply', 'publickeyBHash', 'publickeyBHash-reply']
     for (const item of whitelist) {
         if (type == item) return
     }
@@ -58,29 +63,70 @@ async function showMessage(type, sender, username, message) {
 
 
 
-function handshake(socket, data) {
+function getMessageDetail(message, type){
+    const username = sessionStorage.getItem('username')
+    const roomname = sessionStorage.getItem('roomname')
+    return {
+        message,
+        room_name: roomname,
+        sender: username,
+        type
+    }
+}
+
+
+async function handshake(socket, data) {
     let sender = data["sender"]
     let content = data["message"]
     let type = data["type"]
+    const username = sessionStorage.getItem('username')
+    const roomname = sessionStorage.getItem('roomname')
 
     if (type == 'publickey') {
-        if (sender !== "{{username}}") {
+        if (sender !== username) {
             sessionStorage.setItem(`publicKeyB`, content)
             const publicKey = sessionStorage.getItem('publicKey')
             socket.send(
-                JSON.stringify({
-                    message: publicKey,
-                    room_name: "{{room_name}}",
-                    sender: "{{username}}",
-                    type: 'publickey-reply'
-                })
+                JSON.stringify(getMessageDetail(publicKey, 'publickey-reply'))
             );
         }
     }
 
     if (type == 'publickey-reply') {
-        if (sender !== "{{username}}") {
+        if (sender !== username) {
             sessionStorage.setItem(`publicKeyB`, content)
+            const privateKey = sessionStorage.getItem('privateKey')
+            const publicKeyBHash = await digitalSignMessage(content, privateKey)
+            socket.send(
+                JSON.stringify(getMessageDetail(publicKeyBHash, 'publickeyBHash'))
+            );
+        }
+    }
+
+    if (type == 'publickeyBHash') {
+        if (sender !== username) {
+            sessionStorage.setItem(`publickeyBHash`, content)
+            const publicKey = sessionStorage.getItem('publicKey')
+            const privateKey = sessionStorage.getItem('privateKey')
+            const publicKeyB = sessionStorage.getItem('publicKeyB')
+            
+            const isHashVerified = await verifySignature(publicKey, content, publicKey)
+            if(!isHashVerified){
+                console.log('isHashVerified: ', isHashVerified, ' -> hash verification failed')
+                logMessage(`Partner, '${sender}' authenticaion failed.`)
+                return socket.close()
+            }
+
+            const publicKeyBHash = await digitalSignMessage(publicKeyB, privateKey)
+            socket.send(
+                JSON.stringify(getMessageDetail(publicKeyBHash, 'publickeyBHash-reply'))
+            );
+        }
+    }
+
+    if (type == 'publickeyBHash-reply') {
+        if (sender !== username) {
+            sessionStorage.setItem(`publickeyBHash`, content)
         }
     }
 }

@@ -28,4 +28,11 @@
     {% endif %}
     {% endif %}
 </section>
+<script>
+    sessionStorage.setItem('username', '{{username}}')
+    sessionStorage.removeItem('publicKeyB')
+    sessionStorage.removeItem('partner')
+    sessionStorage.removeItem('roomname')
+    sessionStorage.removeItem('publickeyBHash')
+</script>
 {% endblock %}
