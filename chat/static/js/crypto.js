@@ -56,19 +56,7 @@ function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
 
 
 async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
-    // let pemHeader = "-----BEGIN PUBLIC KEY-----";
-    // let pemFooter = "-----END PUBLIC KEY-----";
-    // if (format == rsa_privatekey_format) {
-    //     pemHeader = "-----BEGIN PRIVATE KEY-----";
-    //     pemFooter = "-----END PRIVATE KEY-----";
-    // }
-    // const pemContents = pem.substring(
-    //     pemHeader.length,
-    //     pem.length - pemFooter.length - 1,
-    // );
     const binaryDer = rsaKeyToBuffer(pem, format)
-    // const binaryDer = stringToArrayBuffer(binaryDerString);
-
     const importedKey = await window.crypto.subtle.importKey(
         format,
         binaryDer,
@@ -119,36 +107,45 @@ function getCryptoOption(iv) {
 }
 
 async function encryptAES(plainText, key, iv) {
-    const encoder = new TextEncoder();
-    const keyData = await encodeKey(key)
-
-    const encryptedData = await crypto.subtle.encrypt(
-        getCryptoOption(iv),
-        keyData,
-        encoder.encode(plainText)
-    );
-
-    return Array.from(new Uint8Array(encryptedData))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+    try {
+        const encoder = new TextEncoder();
+        const keyData = await encodeKey(key)
+        const encryptedData = await crypto.subtle.encrypt(
+            getCryptoOption(iv),
+            keyData,
+            encoder.encode(plainText)
+        );
+    
+        return Array.from(new Uint8Array(encryptedData))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    } catch (error) {
+        console.log('encryptAES-error:', error.message)
+        return ''
+    }
 }
 
 
 async function decryptAES(cipherText, key, iv) {
 
-    if (cipherText.length < 9) return cipherText
+    if (cipherText.length < 9 || !key || !iv) return ''
 
-    const decoder = new TextDecoder();
-    const keyData = await encodeKey(key)
-
-    const encryptedBytes = new Uint8Array(cipherText.match(/../g)
-        .map(hex => parseInt(hex, 16)));
-    const decryptedData = await crypto.subtle.decrypt(
-        getCryptoOption(iv),
-        keyData,
-        encryptedBytes
-    );
-    return decoder.decode(decryptedData);
+    try {
+        const decoder = new TextDecoder();
+        const keyData = await encodeKey(key)
+    
+        const encryptedBytes = new Uint8Array(cipherText.match(/../g)
+            .map(hex => parseInt(hex, 16)));
+        const decryptedData = await crypto.subtle.decrypt(
+            getCryptoOption(iv),
+            keyData,
+            encryptedBytes
+        );
+        return decoder.decode(decryptedData);
+    } catch (error) {
+        console.log('decryptAES-error:', error.message)
+        return ''
+    }
 }
 
 
@@ -159,7 +156,7 @@ async function hashMessage(text) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray
         .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+        .join("").substring(0,32);
 
     return {
         hashHex,

@@ -44,32 +44,52 @@ function logMessage(message) {
   errorMsgField && (errorMsgField.innerHTML = message)
 }
 
-async function showMessage(type, sender, username, message) {
+async function showMessage(socket, data) {
   const whitelist = [
     'publickey', 'publickey-reply', 'publickeyBHash',
     'publickeyBHash-reply', 'dhkeypass', 'dhkeypass-reply'
   ]
 
+  let sender = data["sender"]
+  let message = data["message"]
+  let type = data["type"]
+  let hash = data["hash"]
+  let username = sessionStorage.getItem('username')
+
+  if (!username || !sender || !message || !type) return
+
   for (const item of whitelist) {
     if (type == item) return
   }
 
-  const chats_div = document.getElementById("chats-container")
   let plainText = message
+  const chats_div = document.getElementById("chats-container")
+  const dhSharedKey = sessionStorage.getItem('dhSharedKey')
+  const publicKeyB = sessionStorage.getItem('publicKeyB')
+
   if (type == 'message') {
-    plainText = await decryptAES(message, crypto_key, crypto_iv)
+    plainText = await decryptAES(message, dhSharedKey, crypto_iv)
+    if (!plainText) {
+      logMessage(`AES key expired. Message decryption failed`)
+      return socket.close()
+    }
   }
-  if (sender == username) {
-    chats_div.innerHTML += `<div class="single-message sent">
-          <div class="msg-body">${plainText}</div>
-          <p class="sender">Me</p>
-        </div>`;
-  } else {
-    chats_div.innerHTML += `<div class="single-message">
-          <div class="msg-body">${plainText}</div>
-          <p class="sender">${sender}</p>
-        </div>`;
+
+  if (hash && hash.length > 10 && sender !== username) {
+    const isHashVerified = await verifySignature(publicKeyB, hash, plainText)
+    if (!isHashVerified) {
+      console.log('isHashVerified: ', ' -> message signature verification failed')
+      logMessage(`Message signature from '${sender}' verification failed.`)
+      return socket.close()
+    }
+    console.log(`Message signature from '${sender}' verification successful.`)
   }
+
+  chats_div.innerHTML += `<div class="single-message ${sender == username && 'sent'}">
+    <div class="msg-body">${plainText}</div>
+    <p class="sender">${sender == username ? 'Me' : sender}</p>
+  </div>`;
+
 }
 
 
@@ -94,6 +114,8 @@ async function handshake(socket, data) {
   const publicKey = sessionStorage.getItem('publicKey')
   const privateKey = sessionStorage.getItem('privateKey')
   const publicKeyB = sessionStorage.getItem('publicKeyB')
+
+  if (!sender || !content || !type) return
 
   if (type == 'publickey') {
     if (sender !== username) {
@@ -156,6 +178,8 @@ async function dhKeyExchange(socket, data) {
   const username = sessionStorage.getItem('username')
   const privateKeyDH = sessionStorage.getItem('privateKeyDH')
 
+  if (!sender || !content || !type) return
+
   if (type == 'publickeyBHash') {
     if (sender !== username) {
       const { dhPublicKey } = diffieHellman(p, g, privateKeyDH)
@@ -173,7 +197,6 @@ async function dhKeyExchange(socket, data) {
       socket.send(
         JSON.stringify(getMessageDetail(dhPublicKey, 'dhkeypass-reply'))
       );
-      console.log('dhSharedKey:', dhSharedKey)
     }
   }
 
@@ -182,7 +205,6 @@ async function dhKeyExchange(socket, data) {
       const { dhGenerateSecret } = diffieHellman(p, g, privateKeyDH)
       const dhSharedKey = (await hashMessage(dhGenerateSecret(content))).hashHex
       sessionStorage.setItem('dhSharedKey', dhSharedKey)
-      console.log('dhSharedKey:', dhSharedKey)
     }
   }
 }

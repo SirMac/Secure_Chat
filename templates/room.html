@@ -46,16 +46,19 @@
   const message_form = document.getElementById("msg-form")
   message_form.addEventListener("submit", async function (event) {
     event.preventDefault();
-    // console.log("Sending Message")
-    let message_sent = document.getElementById("message").value;
-    let encryptedMsg = await encryptAES(message_sent, crypto_key, crypto_iv)
-    console.log("Sending... ", encryptedMsg);
+    const message_sent = document.getElementById("message").value;
+    const dhSharedKey = sessionStorage.getItem('dhSharedKey')
+    const privateKey = sessionStorage.getItem('privateKey')
+    const hashedMessage = await digitalSignMessage(message_sent, privateKey)
+    let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
+    console.log("Sending message... ", encryptedMsg);
     socket.send(
       JSON.stringify({
         message: encryptedMsg,
         room_name: "{{room_name}}",
         sender: "{{username}}",
         type: "message",
+        hash: hashedMessage
       })
     );
   });
@@ -72,11 +75,11 @@
   socket.addEventListener("message", async (e) => {
     const data = JSON.parse(e.data)["message"]
 
-    console.log('message-from-backend', data);
+    console.log('message-from-server', data);
 
     let sender = data["sender"]
-    let content = data["message"]
-    let type = data["type"]
+    // let content = data["message"]
+    // let type = data["type"]
 
     await handshake(socket, data)
     await dhKeyExchange(socket, data)
@@ -86,8 +89,7 @@
       document.getElementById("message").value = ""
     }
 
-
-    await showMessage(type, sender, "{{username}}", content)
+    await showMessage(socket, data)
 
     scrollToBottom();
 
@@ -96,9 +98,16 @@
   
   // display chat on reload
   document.addEventListener('DOMContentLoaded', async function () {
-
+    let data
     "{%for message in messages%}"
-    await showMessage("{{message.type}}", "{{message.sender}}", "{{username}}", `{{message.message}}`)
+      data = {
+        type: "{{message.type}}",
+        message: "{{message.message}}",
+        sender: "{{message.sender}}",
+        hash: "{{message.hash}}",
+        username: "{{username}}",
+      }
+      await showMessage(socket, data)
     "{%endfor%}"
     scrollToBottom();
   });
