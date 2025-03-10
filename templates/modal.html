@@ -1,0 +1,35 @@
+<div id="modal-template" class="cmodal">
+    <div class="modal-container">
+        <span class="close close-modal">&times;</span>
+        <h3 id="modal-title"></h3>
+        <div id="modal-content"></div>
+        <div id="modal-footer">
+            <a class="button bg-cyan close-modal">Close</a>
+            <a class="button bg-brown confirm-button" id="confirm-button" href="#">Confirm</a>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    let modals = document.getElementsByClassName("close-modal");
+
+    function closeModal() {
+        document.getElementById("modal-content").innerHTML = '';
+        document.getElementById("modal-template").style.display = "none";
+    }
+
+    for (let element of modals) {
+        element.onclick = closeModal
+    }
+
+    // document.onclick = function(){
+    //     let modalState = document.getElementById('modal-template').style.display
+    //     console.log('modalState:', modalState)
+    //     if(modalState === 'block'){
+    //         return closeModal()
+    //     }
+    // }
+
+</script>

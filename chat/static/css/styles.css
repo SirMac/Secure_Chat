@@ -1435,3 +1435,9 @@ nav {
   -ms-overflow-style: none;
   /* IE and Edge */
 }
+
+.room-container .partner {
+  color: #ff7300;
+  font-size: 1.4rem;
+  font-weight: bolder;
+}

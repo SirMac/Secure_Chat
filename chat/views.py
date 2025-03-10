@@ -2,21 +2,9 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.core.serializers import serialize
 from .models import Room, Message, SystemUsers
-from .utils import updateSystemUser, getChatGroup
+from .utils import getChatGroup
 import json
-# Create your views here.
 
-
-def loginUser(request):
-    if request.method == "POST":
-        username = request.POST["username"]
-        # try:
-        #     existing_room = Room.objects.get(room_name__icontains=room)
-        # except Room.DoesNotExist:
-        #     r = Room.objects.create(room_name=room)
-        updateSystemUser(username, 'online')
-        return redirect("chat:index", username=username)
-    return render(request, "login.html")
 
 
 def index(req, username):

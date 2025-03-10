@@ -5,6 +5,7 @@ def updateSystemUser(username, status):
     if not username or not status:
         return None
     
+    username = username.lower()
     user = SystemUsers.objects.filter(username=username)
     
     if len(user) == 0:

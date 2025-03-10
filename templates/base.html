@@ -7,7 +7,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
-  <title>Secure Chat App</title>
+  <title>Secure Chat - {{username | upper}}</title>
 </head>
 
 <body>
@@ -36,11 +36,9 @@
       <div class="nav__notification" id="nav-notification">
         {% if username %}
         <div class="user-container">
-          <div id="systemuser">{{username}}</div>
+          <div id="systemuser">{{username | upper}}</div>
           <div class="display-none" id="user-settings">
             <div class="logout-user" id="logout-user">Logout</div>
-            <!-- <hr style="margin: 10px 0;" /> -->
-            <!-- <div class="deregister-user" id="deregister-user">Deregister</div> -->
           </div>
         </div>
         {% else %}
@@ -49,25 +47,15 @@
       </div>
     </nav>
 
-    <!-- <header class="section__container header__container" id="home">
-      <div class="header__image">
-        <img src="{% static 'images/header.png' %}" alt="header" />
-      </div>
-      <div class="header__content">
-        <div>
-          <h1>Online And Live Auctions</h1>
-        </div>
-      </div>
-    </header> -->
-
     {% block content %}{% endblock %}
 
   </div>
 
+  {% include "modal.html" %}
 
   <footer class="footer" id="contact">
     <div class="footer__bar">
-      Copyright © Mac 2024. <span class="footer-span">ENCS-691 Fall-2024 Project</span>
+      Copyright © Mac 2025. <span class="footer-span">INSE6110 Winter-2025 Project</span>
     </div>
   </footer>
 
@@ -94,7 +82,7 @@
     let modalDetail = [
       {
         title: 'Logout',
-        url: "/accounts/logout",
+        url: "/accounts/logout?username={{username}}",
         trigger: document.getElementsByClassName('logout-user'),
         content: `You are about logout`
       },
@@ -104,19 +92,6 @@
         url: "/accounts/deregister",
         trigger: document.getElementsByClassName('deregister-user'),
         content: `You are about Deregister`
-      },
-
-      {
-        title: 'Delete Partitcipant',
-        url: "",
-        trigger: document.getElementsByClassName('participant__delete'),
-        content: `You are about to delete the participant`
-      },
-
-      {
-        title: 'Notifications',
-        trigger: document.getElementsByClassName('notification-icon'),
-        hideFooter: true
       }
     ]
 

@@ -14,7 +14,7 @@ class ExceptionMiddleware:
             response = self.get_response(request)
         except Exception as e:
             logging.error(e)
-            return redirect('chat:login')
+            return redirect('users:login')
         else:
             statusCode = response.status_code
             if statusCode == 500:
@@ -24,8 +24,8 @@ class ExceptionMiddleware:
             
             elif statusCode == 404 and request.path not in self.blackListPaths:
                 logging.error(f"Page not found for {request.method} {request.path}")
-                # if not request.user.is_authenticated:
-                #     return redirect('users:login')
-                return redirect('chat:login')
+                if not request.user.is_authenticated:
+                    return redirect('users:login')
+                return redirect('chat:index', username=request.user.username)
             return response
 
