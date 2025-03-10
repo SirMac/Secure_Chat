@@ -1,48 +1,41 @@
 
-async function makeAPIcall(options) {
-  const { url, method, body, headers } = options
-  if (!url || !method || !headers) {
-    console.log('makeAPIcall: api call options incomplete')
-    return { error: { message: 'An error occured. Try again later' } }
-  }
-
-  const option = {
-    method,
-    body: typeof body == 'object' ? JSON.stringify(body) : body,
-    headers
-  }
-
-  if (!body) delete option.body
-  console.log('option:', option)
-
-  try {
-    let response = await fetch(url, option)
-
-    const responseData = await response.json()
-    responseData.status = response.status
-    // console.log('makeAPIcall:', responseData)
-    return responseData
-  }
-
-  catch (err) {
-    console.log('form-submit-error: ', err.message)
-    return { error: { message: 'An error occured. Try again later' } }
-  }
-
-}
-
-
-function generateRandomNumber() {
-  const maxLimit = 60
-  const minLimit = 2
+function generateRandomNumber(min = 8, max = 60) {
+  const maxLimit = max
+  const minLimit = min
   return Math.floor(Math.random() * maxLimit) + minLimit
 }
 
+function isPrime(num) {
+  if (num <= 1) return false;
+  if (num <= 3) return true;
+  if (num % 2 === 0 || num % 3 === 0) return false;
+  for (let i = 5; i * i <= num; i += 6) {
+    if (num % i === 0 || num % (i + 2) === 0) return false;
+  }
+  return true;
+}
 
-function logMessage(message) {
+function getRandomPrime(min, max) {
+  while (true) {
+    const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+    if (isPrime(randomNum)) {
+      return randomNum;
+    }
+  }
+}
+
+function logMsgOnPage(message) {
   const errorMsgField = document.getElementById('message-log')
   errorMsgField && (errorMsgField.innerHTML = message)
 }
+
+
+function logWithDelay(msg, time = 100) {
+  setTimeout(() => {
+    console.log(msg)
+  }, time)
+}
+
 
 async function showMessage(socket, data) {
   const whitelist = [
@@ -70,8 +63,8 @@ async function showMessage(socket, data) {
   if (type == 'message') {
     plainText = await decryptAES(message, dhSharedKey, crypto_iv)
     if (!plainText) {
-      logMessage(`AES key expired. Message decryption failed`)
-      return socket.close()
+      logMsgOnPage(`AES key expired. Message decryption failed`)
+      return socket.readyState == 1 && socket.close()
     }
   }
 
@@ -79,8 +72,8 @@ async function showMessage(socket, data) {
     const isHashVerified = await verifySignature(publicKeyB, hash, plainText)
     if (!isHashVerified) {
       console.log('isHashVerified: ', ' -> message signature verification failed')
-      logMessage(`Message signature from '${sender}' verification failed.`)
-      return socket.close()
+      logMsgOnPage(`Message signature from '${sender}' verification failed.`)
+      return socket.readyState == 1 && socket.close()
     }
     console.log(`Message signature from '${sender}' verification successful.`)
   }
@@ -91,7 +84,6 @@ async function showMessage(socket, data) {
   </div>`;
 
 }
-
 
 
 function getMessageDetail(message, type) {
@@ -142,9 +134,10 @@ async function handshake(socket, data) {
       const isHashVerified = await verifySignature(publicKeyB, content, publicKey)
       if (!isHashVerified) {
         console.log('isHashVerified: ', isHashVerified, ' -> hash verification failed')
-        logMessage(`Partner, '${sender}' authenticaion failed.`)
-        return socket.close()
+        logMsgOnPage(`Partner, '${sender}' authenticaion failed.`)
+        return socket.readyState == 1 && socket.close()
       }
+
       console.log(`Hash verified. Authentication successful for ${sender}`)
 
       const publicKeyBHash = await digitalSignMessage(publicKeyB, privateKey)
@@ -160,8 +153,8 @@ async function handshake(socket, data) {
       const isHashVerified = await verifySignature(publicKeyB, content, publicKey)
       if (!isHashVerified) {
         console.log('isHashVerified: ', isHashVerified, `-> hash verification failed for ${sender}`)
-        logMessage(`Partner, '${sender}' authenticaion failed.`)
-        return socket.close()
+        logMsgOnPage(`Partner, '${sender}' authenticaion failed.`)
+        return socket.readyState == 1 && socket.close()
       }
       console.log(`Hash verified. Authentication successful for ${sender}`)
     }
@@ -180,31 +173,47 @@ async function dhKeyExchange(socket, data) {
 
   if (!sender || !content || !type) return
 
-  if (type == 'publickeyBHash') {
-    if (sender !== username) {
-      const { dhPublicKey } = diffieHellman(p, g, privateKeyDH)
-      socket.send(
-        JSON.stringify(getMessageDetail(dhPublicKey, 'dhkeypass'))
-      );
+  if (type == 'publickeyBHash' && sender !== username) {
+    let dhP = sessionStorage.getItem('dhP')
+    let dhG = sessionStorage.getItem('dhG')
+    if(!dhP || !dhG){
+      dhG = generateRandomNumber(2, 8)
+      dhP = getRandomPrime(23, 61)
+      sessionStorage.setItem('dhG', dhG)
+      sessionStorage.setItem('dhP', dhP)
+      console.log(`DH public keys generated by '${username}': p=${dhP}, g=${dhG}`)
     }
+    const { dhPublicKey } = diffieHellman(dhP, dhG, privateKeyDH)
+    let messageDetail = getMessageDetail(dhPublicKey, 'dhkeypass')
+    messageDetail.dhP = dhP
+    messageDetail.dhG = dhG
+    socket.send(
+      JSON.stringify(messageDetail)
+    );
   }
 
-  if (type == 'dhkeypass') {
-    if (sender !== username) {
-      const { dhPublicKey, dhGenerateSecret } = diffieHellman(p, g, privateKeyDH)
-      const dhSharedKey = (await hashMessage(dhGenerateSecret(content))).hashHex
-      sessionStorage.setItem('dhSharedKey', dhSharedKey)
-      socket.send(
-        JSON.stringify(getMessageDetail(dhPublicKey, 'dhkeypass-reply'))
-      );
-    }
+  if (type == 'dhkeypass' && sender !== username) {
+    const dhG = data['dhG']
+    const dhP = data['dhP']
+    sessionStorage.setItem('dhG', dhG)
+    sessionStorage.setItem('dhP', dhP)
+    const { dhPublicKey, dhGenerateSecret } = diffieHellman(dhP, dhG, privateKeyDH)
+    const dhSharedKey = (await hashMessage(dhGenerateSecret(content))).hashHex
+    sessionStorage.setItem('dhSharedKey', dhSharedKey)
+    socket.send(
+      JSON.stringify(getMessageDetail(dhPublicKey, 'dhkeypass-reply'))
+    );
+    logWithDelay(`DH shared key generated by ${username.toUpperCase()}: ${dhSharedKey}`)
   }
 
-  if (type == 'dhkeypass-reply') {
-    if (sender !== username) {
-      const { dhGenerateSecret } = diffieHellman(p, g, privateKeyDH)
-      const dhSharedKey = (await hashMessage(dhGenerateSecret(content))).hashHex
-      sessionStorage.setItem('dhSharedKey', dhSharedKey)
-    }
+  if (type == 'dhkeypass-reply' && sender !== username) {
+    const dhG = sessionStorage.getItem('dhG')
+    const dhP = sessionStorage.getItem('dhP')
+    const { dhGenerateSecret } = diffieHellman(dhP, dhG, privateKeyDH)
+    const dhSharedKey = (await hashMessage(dhGenerateSecret(content))).hashHex
+    sessionStorage.setItem('dhSharedKey', dhSharedKey)
+    console.log(
+      `DH shared key generated by ${username.toUpperCase()}: ${dhSharedKey}`
+    )
   }
 }

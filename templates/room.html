@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 
@@ -17,104 +18,33 @@
 </div>
 
 <script>
-
-
   sessionStorage.setItem('partner', '{{partner}}')
   sessionStorage.setItem('roomname', '{{room_name}}')
+</script>
 
-  const socketURL = `ws://${window.location.host}/ws/messages/{{room_name}}/`;
-  console.log("Establishing Socket Connection... ")
-  const socket = new WebSocket(socketURL)
-  socket.onerror = function (err) {
-    console.log('socket-connection-error:', err)
-    // socket.close()
-  }
-  socket.onopen = function (e) {
-    console.log("Successfully connected to the WebSocket.");
-    const publicKey = sessionStorage.getItem('publicKey')
-    socket.send(
-      JSON.stringify({
-        message: publicKey,
-        room_name: "{{room_name}}",
-        sender: "{{username}}",
-        type: 'publickey'
-      })
-    );
-  }
+<script src="{% static 'js/socketIO.js' %}"></script>
 
-  // Send Message to the backend
-  const message_form = document.getElementById("msg-form")
-  message_form.addEventListener("submit", async function (event) {
-    event.preventDefault();
-    const message_sent = document.getElementById("message").value;
-    const dhSharedKey = sessionStorage.getItem('dhSharedKey')
-    const privateKey = sessionStorage.getItem('privateKey')
-    const hashedMessage = await digitalSignMessage(message_sent, privateKey)
-    let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
-    console.log("Sending message... ", encryptedMsg);
-    socket.send(
-      JSON.stringify({
-        message: encryptedMsg,
-        room_name: "{{room_name}}",
-        sender: "{{username}}",
-        type: "message",
-        hash: hashedMessage
-      })
-    );
-  });
-
-  const chats_div = document.getElementById("chats-container")
-
-  // Scroll to bottom
-  const scrollToBottom = () => {
-    chats_div.scrollTop = chats_div.scrollHeight;
-  }
-
-  
-  // Recieve Message from the backend
-  socket.addEventListener("message", async (e) => {
-    const data = JSON.parse(e.data)["message"]
-
-    console.log('message-from-server', data);
-
-    let sender = data["sender"]
-    // let content = data["message"]
-    // let type = data["type"]
-
-    await handshake(socket, data)
-    await dhKeyExchange(socket, data)
-    
-
-    if (sender == "{{username}}") {
-      document.getElementById("message").value = ""
-    }
-
-    await showMessage(socket, data)
-
-    scrollToBottom();
-
-  });
-
-  
+<script>
   // display chat on reload
   document.addEventListener('DOMContentLoaded', async function () {
     let data
+    const socketIO = socket
     "{%for message in messages%}"
-      data = {
-        type: "{{message.type}}",
-        message: "{{message.message}}",
-        sender: "{{message.sender}}",
-        hash: "{{message.hash}}",
-        username: "{{username}}",
-      }
-      await showMessage(socket, data)
-    "{%endfor%}"
+    data = {
+      type: "{{ message.type }}",
+      message: "{{ message.message }}",
+      sender: "{{ message.sender }}",
+      hash: "{{ message.hash }}",
+      username: "{{ username }}",
+    }
+    // console.log('socket-status: ', socketIO.readyState)
+    if(socketIO.readyState !== 3){
+      await showMessage(socketIO, data)
+    }
+    "{% endfor %}"
     scrollToBottom();
   });
-
-
-
-
 </script>
+
 
 {% endblock %}

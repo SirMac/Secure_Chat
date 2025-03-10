@@ -74,7 +74,7 @@ async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
 
 async function exportRSAKey(key, format) {
     const exported = await window.crypto.subtle.exportKey(
-        format, // "spki" (public key) or "pkcs8" (private key)
+        format, 
         key
     );
     const exportedAsString = String.fromCharCode(...new Uint8Array(exported));
@@ -178,13 +178,6 @@ async function digitalSignMessage(message, privateKey) {
         key,
         hashBuffer
     );
-    // console.log('signatureBuffer: ', signatureBuffer)
-    // const signatureArray = Array.from(new Uint8Array(signatureBuffer));
-    // const signatureHex = signatureArray
-    //     .map(b => b.toString(16)
-    //         .padStart(2, '0'))
-    //     .join('');
-    // console.log('signatureBuffer2: ', stringToArrayBuffer(signatureHex))
     const exportedAsString = String.fromCharCode(...new Uint8Array(signatureBuffer));
     const exportedAsBase64 = btoa(exportedAsString);
     return exportedAsBase64
@@ -207,6 +200,7 @@ async function verifySignature(publicKey, signature, data) {
     );
 }
 
+// ....Diffie-Hellman key exchange....
 
 // Function to calculate (base^exp) % mod
 function power(base, exp, mod) {
@@ -221,7 +215,7 @@ function power(base, exp, mod) {
     return res;
 }
 
-// Function to perform Diffie-Hellman key exchange
+
 function diffieHellman(p, g, privateKey) {
     return {
         dhPublicKey: power(g, privateKey, p),

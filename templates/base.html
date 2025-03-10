@@ -27,10 +27,6 @@
         <li class="{% if current_url == url %} active-menu {%endif%}">
           <a href="{{url}}">Home</a>
         </li>
-        {% url 'chat:chatRoom' username as url %}
-        <li class="{% if current_url == url %} active-menu {%endif%}">
-          <a href="{{url}}">Chat</a>
-        </li>
         {% endwith %}
       </ul>
       <div class="nav__notification" id="nav-notification">
