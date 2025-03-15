@@ -1,4 +1,4 @@
-from .models import SystemUsers, Room
+from .models import SystemUsers, Room, Message
 from django.db.models import Q
 
 def updateSystemUser(username, status):
@@ -35,6 +35,16 @@ def getChatGroup(user1, user2):
     return group[0]
 
 
+
+def clearChat(username):
+    try:
+        msg_to_delete = Message.objects.filter(Q(sender=username)|Q(receiver=username))
+    except Exception as e:
+        return print('clearChat Error: ', e)
+
+    if len(msg_to_delete) > 0:
+        msg_to_delete.delete()
+    return
 
 
 

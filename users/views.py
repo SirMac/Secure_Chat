@@ -5,7 +5,7 @@ from django.contrib.messages import error, success
 from .userValidators import ValidateUser
 import logging
 from .utils import loggedIn, handleDBConnectionError, isUserRegistered, isUserActive
-from chat.utils import updateSystemUser
+from chat.utils import updateSystemUser, clearChat
 
 
 @loggedIn
@@ -100,9 +100,10 @@ def deregisterUser(req):
 
 
 def logoutUser(req):
-    logout(req)
     username = req.GET.get('username')
     updateSystemUser(username, 'offline')
+    clearChat(username)
+    logout(req)
     return redirect('users:login')
 
 

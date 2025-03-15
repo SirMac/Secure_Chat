@@ -15,6 +15,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
     async def disconnect(self, code):
+        # print(f'Websocket-disconnect: {self.room_name}, user:{code}')
         await self.channel_layer.group_discard(self.room_name, self.channel_name)
         self.close(code)
 
@@ -35,7 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def create_message(self, data):
         get_room = Room.objects.get(room_name=data["room_name"])
-        messageType = data['type']
+        messageType = data.get('type')
         if not messageType:
             messageType = 'message'
 
@@ -45,6 +46,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             new_message = Message.objects.create(
                 room=get_room, message=data["message"], 
                 sender=data["sender"],
+                receiver=data["partner"],
                 type=messageType
             )
             return new_message

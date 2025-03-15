@@ -28,9 +28,12 @@ socket.onopen = function (e) {
 const message_form = document.getElementById("msg-form")
 message_form.addEventListener("submit", async function (event) {
   event.preventDefault();
+  const {dhSharedKeyName} = getDHKeysName()
   const message_sent = document.getElementById("message").value;
-  const dhSharedKey = sessionStorage.getItem('dhSharedKey')
+  const roomname = sessionStorage.getItem('roomname')
+  const dhSharedKey = sessionStorage.getItem(dhSharedKeyName)
   const privateKey = sessionStorage.getItem('privateKey')
+  const partner = sessionStorage.getItem('partner')
   const hashedMessage = await digitalSignMessage(message_sent, privateKey)
   let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
   console.log("Sending message... ", encryptedMsg);
@@ -39,6 +42,7 @@ message_form.addEventListener("submit", async function (event) {
       message: encryptedMsg,
       room_name: roomname,
       sender: username,
+      partner,
       type: "message",
       hash: hashedMessage
     })
