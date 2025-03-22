@@ -32,9 +32,9 @@ def authenticateUser(req):
         return redirect('users:login')
     
     login(req, user)
-    urlReferer = req.session.get('urlref')
-    if urlReferer:
-        return redirect(urlReferer)
+    # urlReferer = req.session.get('urlref')
+    # if urlReferer:
+    #     return redirect(urlReferer)
     
     updateSystemUser(username, 'online')
     return redirect('chat:index', username=username)

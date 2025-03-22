@@ -32,19 +32,16 @@
     </div>
   </div>
 </body>
-<script>
-  document.addEventListener('DOMContentLoaded', async function () {
-    const keyPair = await generateRSAKeys()
-    if(!keyPair) return
-    const publicKey = await exportRSAKey(keyPair.publicKey, 'spki')
-    const privateKey = await exportRSAKey(keyPair.privateKey, 'pkcs8')
-    const privateKeyDH = generateRandomNumber()
-    sessionStorage.clear()
-    sessionStorage.setItem('publicKey', publicKey)
-    sessionStorage.setItem('privateKey', privateKey)
-    sessionStorage.setItem('privateKeyDH', privateKeyDH)
-  })
-</script>
 <script src="{% static 'js/crypto.js' %}"></script>
 <script src="{% static 'js/script.js' %}"></script>
+<script>
+  sessionStorage.clear()
+  saveKeysOnload()
+  // document.addEventListener('DOMContentLoaded', async function () {
+  //   const {publicKey, privateKey, privateKeyDH} = await generateKeys()
+  //   sessionStorage.setItem('publicKey', publicKey)
+  //   sessionStorage.setItem('privateKey', privateKey)
+  //   sessionStorage.setItem('privateKeyDH', privateKeyDH)
+  // })
+</script>
 </html>

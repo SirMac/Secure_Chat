@@ -14,6 +14,8 @@ socket.onerror = function (err) {
 socket.onopen = function (e) {
   console.log("Successfully connected to the WebSocket.");
   const publicKey = sessionStorage.getItem('publicKey')
+  const {dhSharedKeyName} = getDHKeysName()
+  sessionStorage.removeItem(dhSharedKeyName)
   socket.send(
     JSON.stringify({
       message: publicKey,
@@ -23,6 +25,7 @@ socket.onopen = function (e) {
     })
   );
 }
+
 
 // Send Message to the backend
 const message_form = document.getElementById("msg-form")
@@ -34,9 +37,14 @@ message_form.addEventListener("submit", async function (event) {
   const dhSharedKey = sessionStorage.getItem(dhSharedKeyName)
   const privateKey = sessionStorage.getItem('privateKey')
   const partner = sessionStorage.getItem('partner')
-  const hashedMessage = await digitalSignMessage(message_sent, privateKey)
+  if(!dhSharedKey){
+    console.log(`Partner, '${partner}' not online`)
+    return logMsgOnPage(`Partner, '${partner}' not online`)
+  }
+  const signedMessage = await digitalSignMessage(message_sent, privateKey)
   let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
   console.log("Sending message... ", encryptedMsg);
+  logMsgOnPage()
   socket.send(
     JSON.stringify({
       message: encryptedMsg,
@@ -44,9 +52,10 @@ message_form.addEventListener("submit", async function (event) {
       sender: username,
       partner,
       type: "message",
-      hash: hashedMessage
+      digitalSignature: signedMessage
     })
   );
+  document.getElementById('message').value = ''
 });
 
 

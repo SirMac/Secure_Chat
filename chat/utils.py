@@ -1,4 +1,5 @@
 from .models import SystemUsers, Room, Message
+from django.contrib.auth.models import User
 from django.db.models import Q
 
 def updateSystemUser(username, status):
@@ -6,16 +7,29 @@ def updateSystemUser(username, status):
         return None
     
     username = username.lower()
-    user = SystemUsers.objects.filter(username=username)
-    
+    user = getRecord(User, {'username':username})
     if len(user) == 0:
+        return 
+    
+    systemUser = SystemUsers.objects.filter(username=username)
+    
+    if len(systemUser) == 0:
         print(f'updateSystemUser: Username "{username}" added to systemuser')
         SystemUsers.objects.create(username=username, status=status)
         return
     
-    user = user[0]
-    user.status = status
-    user.save()
+    systemUser = systemUser[0]
+    systemUser.status = status
+    systemUser.save()
+
+
+def hasLoggedOut(username):
+    systemUser = getRecord(SystemUsers, {'username':username,'status':'online'})
+    
+    if systemUser[0]:
+        return True
+    
+    return False
 
 
 def createChatGroup(user1, user2):
@@ -47,6 +61,16 @@ def clearChat(username):
     return
 
 
+def clearGroupChat(roomid):
+    try:
+        msg_to_delete = Message.objects.filter(room_id=roomid)
+    except Exception as e:
+        return print('clearChat Error: ', e)
+
+    if len(msg_to_delete) > 0:
+        msg_to_delete.delete()
+    return
+
 
 
 
@@ -66,6 +90,20 @@ def getAllRecords(model):
     try:
         record = model.objects.all()
     except (KeyError, model.DoesNotExist):
+        return None
+    else:
+        return record
+
+
+
+def getRecord(model, filterKwargs):
+    if not filterKwargs:
+        return None
+    
+    try:
+        record = model.objects.filter(**filterKwargs)
+    except Exception as e:
+        print('getRecord-Error: ', e)
         return None
     else:
         return record

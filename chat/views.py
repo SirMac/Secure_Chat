@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.core.serializers import serialize
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+from django.db.models import Q
 from .models import Room, Message, SystemUsers
-from .utils import getChatGroup
-import json
+from .utils import getChatGroup, updateSystemUser, clearChat, clearGroupChat, getRecord
 
 
-
+@login_required
 def index(req, username):
     onlineUsers = SystemUsers.objects.filter(status='online').exclude(username=username)
     context = {
@@ -22,6 +24,7 @@ def index(req, username):
     return render(req, "index.html", context)
 
 
+@login_required
 def chatRoom(request, username):
     partner = request.GET.get('connectwith')
     if not partner:
@@ -50,4 +53,30 @@ def getChat(request, groupname):
     messages = Message.objects.filter(room=existing_room)
     messageDump = serialize('json', messages)
     return HttpResponse(messageDump)
+    
+
+
+def clearChat(req, groupname):
+    if req.method == 'POST':
+        try:
+            room = Room.objects.get(Q(room_name=groupname)|Q(description=groupname))
+        except Exception as e:
+            print('clearChat-Error:', e)
+            return HttpResponse('An error occured')
+        
+        clearGroupChat(room.id)
+        print('clearChat: Messages cleared successfully')
+        return HttpResponse('messages cleared')
+
+    print('Request must be by POST. Messages not cleared')
+    return HttpResponse('Messages not cleared')
+
+
+
+def handleUserDisconnect(req, username):
+    print(f'User, "{username}" has disconnected', req.user)
+    updateSystemUser(username, 'offline')
+    clearChat(username)
+    logout(req)
+    return HttpResponse(f'User, "{username}" has disconnected')
     

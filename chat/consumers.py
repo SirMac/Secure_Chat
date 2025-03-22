@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Room, Message
+from .utils import hasLoggedOut
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -44,7 +45,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message=data["message"], sender=data["sender"]
         ).exists():
             new_message = Message.objects.create(
-                room=get_room, message=data["message"], 
+                room=get_room, 
+                message=data["message"], 
                 sender=data["sender"],
                 receiver=data["partner"],
                 type=messageType

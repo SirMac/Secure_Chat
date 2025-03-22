@@ -18,8 +18,8 @@ def handleDBConnectionError(func):
 
 def loggedIn(func):
     def inner_function(req, *args, **kwargs):
-        print(req.user.username)
         if not req.user.is_authenticated:
+            # return redirect('users:login')
             return func(req, *args, **kwargs)
         return redirect('chat:index', username=req.user)
     return inner_function

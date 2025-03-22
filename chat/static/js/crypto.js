@@ -41,6 +41,8 @@ function base64ToBuffer(base64){
 
 
 function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
+    if(!pem) return ''
+
     let pemHeader = "-----BEGIN PUBLIC KEY-----";
     let pemFooter = "-----END PUBLIC KEY-----";
     if (format == rsa_privatekey_format) {
@@ -56,6 +58,7 @@ function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
 
 
 async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
+    if(!pem) return ''
     const binaryDer = rsaKeyToBuffer(pem, format)
     const importedKey = await window.crypto.subtle.importKey(
         format,
@@ -223,4 +226,19 @@ function diffieHellman(p, g, privateKey) {
             return power(otherPublicKey, privateKey, p);
         },
     };
+}
+
+
+
+async function generateKeys(){
+    const keyPair = await generateRSAKeys()
+    if(!keyPair) return {}
+    const publicKey = await exportRSAKey(keyPair.publicKey, 'spki')
+    const privateKey = await exportRSAKey(keyPair.privateKey, 'pkcs8')
+    const privateKeyDH = generateRandomNumber()
+    return {
+        publicKey,
+        privateKey,
+        privateKeyDH
+    }
 }

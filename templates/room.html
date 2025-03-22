@@ -10,7 +10,8 @@
     <div class="error center" id="message-log"></div>
     <form action="" id="msg-form" method="post">
       {% csrf_token %}
-      <textarea name="message" id="message" cols="30" rows="10" placeholder="Enter your message"></textarea>
+      <input name="message" id="message" placeholder="Enter your message">
+      <!-- <textarea name="message" id="message" cols="30" rows="10" placeholder="Enter your message"></textarea> -->
 
       <button type="submit">&#10003;</button>
     </form>
@@ -27,22 +28,23 @@
 <script>
   // display chat on reload
   document.addEventListener('DOMContentLoaded', async function () {
-    let data
-    const socketIO = socket
-    "{%for message in messages%}"
-    data = {
-      type: "{{ message.type }}",
-      message: "{{ message.message }}",
-      sender: "{{ message.sender }}",
-      hash: "{{ message.hash }}",
-      username: "{{ username }}",
-    }
-    // console.log('socket-status: ', socketIO.readyState)
-    if(socketIO.readyState !== 3){
-      await showMessage(socketIO, data)
-    }
-    "{% endfor %}"
-    scrollToBottom();
+    setTimeout(async () => {
+      let data
+      const socketIO = socket
+      "{%for message in messages%}"
+      data = {
+        type: "{{ message.type }}",
+        message: "{{ message.message }}",
+        sender: "{{ message.sender }}",
+        hash: "{{ message.hash }}",
+        username: "{{ username }}",
+      }
+      if(socketIO.readyState !== 3){
+        await showMessage(socketIO, data)
+      }
+      "{% endfor %}"
+      scrollToBottom();
+    }, 1000);
   });
 </script>
 
