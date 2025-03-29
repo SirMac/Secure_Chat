@@ -8,22 +8,23 @@ const socket = new WebSocket(socketURL)
 
 socket.onerror = function (err) {
   console.log('socket-connection-error:', err)
-  socket.readyState==1 && socket.close()
+  socket.readyState == 1 && socket.close()
 }
 
 socket.onopen = function (e) {
   console.log("Successfully connected to the WebSocket.");
-  const publicKey = sessionStorage.getItem('publicKey')
-  const {dhSharedKeyName} = getDHKeysName()
+  // const publicKey = sessionStorage.getItem('publicKey')
+  const { dhSharedKeyName } = getDHKeysName()
   sessionStorage.removeItem(dhSharedKeyName)
-  socket.send(
-    JSON.stringify({
-      message: publicKey,
-      room_name: roomname,
-      sender: username,
-      type: 'publickey'
-    })
-  );
+  synchronize(socket)
+  // socket.send(
+  //   JSON.stringify({
+  //     message: publicKey,
+  //     room_name: roomname,
+  //     sender: username,
+  //     type: 'publickey'
+  //   })
+  // );
 }
 
 
@@ -31,13 +32,13 @@ socket.onopen = function (e) {
 const message_form = document.getElementById("msg-form")
 message_form.addEventListener("submit", async function (event) {
   event.preventDefault();
-  const {dhSharedKeyName} = getDHKeysName()
+  const { dhSharedKeyName } = getDHKeysName()
   const message_sent = document.getElementById("message").value;
   const roomname = sessionStorage.getItem('roomname')
   const dhSharedKey = sessionStorage.getItem(dhSharedKeyName)
   const privateKey = sessionStorage.getItem('privateKey')
   const partner = sessionStorage.getItem('partner')
-  if(!dhSharedKey){
+  if (!dhSharedKey) {
     console.log(`Partner, '${partner}' not online`)
     return logMsgOnPage(`Partner, '${partner}' not online`)
   }
