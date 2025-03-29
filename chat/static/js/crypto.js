@@ -7,6 +7,7 @@ const rsa_publickey_format = 'spki'
 const rsa_privatekey_format = 'pkcs8'
 const rsa_algorithm = 'RSA-PSS'
 const hash_algorithm = 'SHA-256'
+const aes_algorithm = 'AES-CBC'
 
 
 async function generateRSAKeys() {
@@ -34,14 +35,14 @@ function stringToArrayBuffer(str) {
 }
 
 
-function base64ToBuffer(base64){
+function base64ToBuffer(base64) {
     const base64Binary = window.atob(base64);
     return stringToArrayBuffer(base64Binary)
 }
 
 
-function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
-    if(!pem) return ''
+function rsaKeyToBuffer(pem, format = rsa_privatekey_format) {
+    if (!pem) return ''
 
     let pemHeader = "-----BEGIN PUBLIC KEY-----";
     let pemFooter = "-----END PUBLIC KEY-----";
@@ -57,8 +58,8 @@ function rsaKeyToBuffer(pem, format=rsa_privatekey_format){
 }
 
 
-async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
-    if(!pem) return ''
+async function importRSAKey(pem, usage = 'sign', format = rsa_privatekey_format) {
+    if (!pem) return ''
     const binaryDer = rsaKeyToBuffer(pem, format)
     const importedKey = await window.crypto.subtle.importKey(
         format,
@@ -77,7 +78,7 @@ async function importRSAKey(pem, usage='sign', format=rsa_privatekey_format) {
 
 async function exportRSAKey(key, format) {
     const exported = await window.crypto.subtle.exportKey(
-        format, 
+        format,
         key
     );
     const exportedAsString = String.fromCharCode(...new Uint8Array(exported));
@@ -95,7 +96,7 @@ async function encodeKey(key) {
     const keyData = await crypto.subtle.importKey(
         "raw",
         encoder.encode(key),
-        { name: "AES-CBC", },
+        { name: aes_algorithm, },
         false,
         ["encrypt", "decrypt"]
     );
@@ -104,7 +105,7 @@ async function encodeKey(key) {
 
 function getCryptoOption(iv) {
     return {
-        name: "AES-CBC",
+        name: aes_algorithm,
         iv: new TextEncoder().encode(iv)
     }
 }
@@ -118,7 +119,7 @@ async function encryptAES(plainText, key, iv) {
             keyData,
             encoder.encode(plainText)
         );
-    
+
         return Array.from(new Uint8Array(encryptedData))
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
@@ -136,7 +137,7 @@ async function decryptAES(cipherText, key, iv) {
     try {
         const decoder = new TextDecoder();
         const keyData = await encodeKey(key)
-    
+
         const encryptedBytes = new Uint8Array(cipherText.match(/../g)
             .map(hex => parseInt(hex, 16)));
         const decryptedData = await crypto.subtle.decrypt(
@@ -159,7 +160,7 @@ async function hashMessage(text) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray
         .map((b) => b.toString(16).padStart(2, "0"))
-        .join("").substring(0,32);
+        .join("").substring(0, 32);
 
     return {
         hashHex,
@@ -222,7 +223,7 @@ function power(base, exp, mod) {
 function diffieHellman(p, g, privateKey) {
     return {
         dhPublicKey: power(g, privateKey, p),
-        dhGenerateSecret: function (otherPublicKey) {
+        dhGenerateSharedKey: function (otherPublicKey) {
             return power(otherPublicKey, privateKey, p);
         },
     };
@@ -230,15 +231,34 @@ function diffieHellman(p, g, privateKey) {
 
 
 
-async function generateKeys(){
+async function generateKeys() {
     const keyPair = await generateRSAKeys()
-    if(!keyPair) return {}
+    if (!keyPair) return {}
     const publicKey = await exportRSAKey(keyPair.publicKey, 'spki')
     const privateKey = await exportRSAKey(keyPair.privateKey, 'pkcs8')
     const privateKeyDH = generateRandomNumber()
     return {
         publicKey,
         privateKey,
+        privateKeyDH
+    }
+}
+
+
+function generateDHKeys() {
+    const { dhPName, dhGName } = getDHKeysName()
+    let dhP = sessionStorage.getItem(dhPName)
+    let dhG = sessionStorage.getItem(dhGName)
+    if (!dhP || !dhG) {
+        dhP = getRandomPrime(23, 61)
+        dhG = generateRandomNumber(1, dhP - 1)
+    }
+    let privateKeyDH = sessionStorage.getItem('privateKeyDH')
+    if (!privateKeyDH) { privateKeyDH = generateRandomNumber(1, dhP - 2) }
+
+    return {
+        dhP,
+        dhG,
         privateKeyDH
     }
 }
