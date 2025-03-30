@@ -2,7 +2,6 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Room, Message
-from .utils import hasLoggedOut
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -14,21 +13,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-
     async def disconnect(self, code):
-        # print(f'Websocket-disconnect: {self.room_name}, user:{code}')
         await self.channel_layer.group_discard(self.room_name, self.channel_name)
         self.close(code)
 
-
     async def receive(self, text_data):
         data_json = json.loads(text_data)
-        event = {"type": "send_message", "message": data_json}
-        await self.channel_layer.group_send(self.room_name, event)
 
+        event = {
+            "type": "send_message",
+            "message": data_json
+        }
+        await self.channel_layer.group_send(self.room_name, event)
 
     async def send_message(self, event):
         data = event["message"]
+
         if data.get('type') == 'message':
             await self.create_message(data=data)
 
@@ -45,10 +45,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message=data["message"], sender=data["sender"]
         ).exists():
             new_message = Message.objects.create(
-                room=get_room, 
-                message=data["message"], 
+                room=get_room,
+                message=data["message"],
                 sender=data["sender"],
                 receiver=data["partner"],
                 type=messageType
             )
             return new_message
+
+    

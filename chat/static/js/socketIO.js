@@ -13,22 +13,18 @@ socket.onerror = function (err) {
 
 socket.onopen = function (e) {
   console.log("Successfully connected to the WebSocket.");
-  // const publicKey = sessionStorage.getItem('publicKey')
   const { dhSharedKeyName } = getDHKeysName()
   sessionStorage.removeItem(dhSharedKeyName)
   synchronize(socket)
-  // socket.send(
-  //   JSON.stringify({
-  //     message: publicKey,
-  //     room_name: roomname,
-  //     sender: username,
-  //     type: 'publickey'
-  //   })
-  // );
 }
 
+// socket.onclose = function(e){
+//   const partner = sessionStorage.getItem('partner')
+//   return logMsgOnPage(`Partner, '${partner}' not online`)
+// }
 
-// Send Message to the backend
+
+// Send Message
 const message_form = document.getElementById("msg-form")
 message_form.addEventListener("submit", async function (event) {
   event.preventDefault();
@@ -38,10 +34,16 @@ message_form.addEventListener("submit", async function (event) {
   const dhSharedKey = sessionStorage.getItem(dhSharedKeyName)
   const privateKey = sessionStorage.getItem('privateKey')
   const partner = sessionStorage.getItem('partner')
+
   if (!dhSharedKey) {
     console.log(`Partner, '${partner}' not online`)
     return logMsgOnPage(`Partner, '${partner}' not online`)
   }
+
+  if(socket.readyState !== 1){
+    return logMsgOnPage('Connection disconnected')
+  }
+
   const signedMessage = await digitalSignMessage(message_sent, privateKey)
   let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
   console.log("Sending message... ", encryptedMsg);
@@ -67,10 +69,20 @@ const scrollToBottom = () => {
 }
 
 
-// Recieve Message from the backend
+function handleDisconnect(data){
+  let type = data['type']
+  if(type !== 'handleDisconnect') return
+  return socket.readyState == 1 && socket.close()
+}
+
+
+// Handle sent messages
 socket.addEventListener("message", async (e) => {
   const data = JSON.parse(e.data)["message"]
-  console.log('message-from-server', data);
+  const sender = data['sender']
+  const type = data['type']
+  console.log(`${type}-from-${sender || 'server'}`, data);
+  handleDisconnect(data)
   await handshake(socket, data)
   await dhKeyExchange(socket, data)
   await showMessage(socket, data)

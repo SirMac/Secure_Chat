@@ -1,7 +1,4 @@
-const crypto_key = '000102030405060708090a0b0c0d0e0f'; // test 16 bytes key
-const crypto_iv = '18191a1b1c1d1e1f'; // test 16 bytes
-const p = 23; // A large prime number
-const g = 5;  // A primitive root modulo p
+const crypto_iv = '18191a1b1c1d1e1f'; 
 const rsapss_salt_len = 16
 const rsa_publickey_format = 'spki'
 const rsa_privatekey_format = 'pkcs8'
@@ -11,17 +8,19 @@ const aes_algorithm = 'AES-CBC'
 
 
 async function generateRSAKeys() {
-    let keyPair = await window.crypto.subtle.generateKey(
-        {
-            name: "RSA-OAEP",
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: hash_algorithm,
-        },
-        true,
-        ["encrypt", "decrypt"],
-    );
-    return keyPair
+    try {
+        let keyPair = await window.crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: hash_algorithm,
+            },
+            true,
+            ["encrypt", "decrypt"],
+        );
+        return keyPair
+    } catch (error) { return '' }
 }
 
 
@@ -60,47 +59,52 @@ function rsaKeyToBuffer(pem, format = rsa_privatekey_format) {
 
 async function importRSAKey(pem, usage = 'sign', format = rsa_privatekey_format) {
     if (!pem) return ''
-    const binaryDer = rsaKeyToBuffer(pem, format)
-    const importedKey = await window.crypto.subtle.importKey(
-        format,
-        binaryDer,
-        {
-            name: rsa_algorithm,
-            hash: hash_algorithm,
-        },
-        true,
-        [usage],
-    );
-    return importedKey
+    try {
+        const binaryDer = rsaKeyToBuffer(pem, format)
+        const importedKey = await window.crypto.subtle.importKey(
+            format,
+            binaryDer,
+            {
+                name: rsa_algorithm,
+                hash: hash_algorithm,
+            },
+            true,
+            [usage],
+        );
+        return importedKey
+    } catch (error) { return '' }
 }
 
 
 
 async function exportRSAKey(key, format) {
-    const exported = await window.crypto.subtle.exportKey(
-        format,
-        key
-    );
-    const exportedAsString = String.fromCharCode(...new Uint8Array(exported));
-    const exportedAsBase64 = btoa(exportedAsString);
-    const pemHeader = format === "spki" ? "-----BEGIN PUBLIC KEY-----" : "-----BEGIN PRIVATE KEY-----";
-    const pemFooter = format === "spki" ? "-----END PUBLIC KEY-----" : "-----END PRIVATE KEY-----";
-    const pemExported = pemHeader + "\n" + exportedAsBase64 + "\n" + pemFooter;
-
-    return pemExported;
+    try {
+        const exported = await window.crypto.subtle.exportKey(
+            format,
+            key
+        );
+        const exportedAsString = String.fromCharCode(...new Uint8Array(exported));
+        const exportedAsBase64 = btoa(exportedAsString);
+        const pemHeader = format === "spki" ? "-----BEGIN PUBLIC KEY-----" : "-----BEGIN PRIVATE KEY-----";
+        const pemFooter = format === "spki" ? "-----END PUBLIC KEY-----" : "-----END PRIVATE KEY-----";
+        const pemExported = pemHeader + "\n" + exportedAsBase64 + "\n" + pemFooter;
+        return pemExported;
+    } catch (error) { return '' }
 }
 
 
 async function encodeKey(key) {
-    const encoder = new TextEncoder();
-    const keyData = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(key),
-        { name: aes_algorithm, },
-        false,
-        ["encrypt", "decrypt"]
-    );
-    return keyData
+    try {
+        const encoder = new TextEncoder();
+        const keyData = await crypto.subtle.importKey(
+            "raw",
+            encoder.encode(key),
+            { name: aes_algorithm, },
+            false,
+            ["encrypt", "decrypt"]
+        );
+        return keyData
+    } catch (error) { return '' }
 }
 
 function getCryptoOption(iv) {
@@ -132,7 +136,7 @@ async function encryptAES(plainText, key, iv) {
 
 async function decryptAES(cipherText, key, iv) {
 
-    if (cipherText.length < 9 || !key || !iv) return ''
+    if (!cipherText.length || !key || !iv) return ''
 
     try {
         const decoder = new TextDecoder();
@@ -155,57 +159,61 @@ async function decryptAES(cipherText, key, iv) {
 
 
 async function hashMessage(text) {
-    const msgUint8 = new TextEncoder().encode(text);
-    const hashBuffer = await window.crypto.subtle.digest(hash_algorithm, msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("").substring(0, 32);
+    try {
+        const msgUint8 = new TextEncoder().encode(text);
+        const hashBuffer = await window.crypto.subtle.digest(hash_algorithm, msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("").substring(0, 32);
 
-    return {
-        hashHex,
-        hashBuffer
-    }
+        return {
+            hashHex,
+            hashBuffer
+        }
+    } catch (error) { return '' }
 }
 
 
 
 async function digitalSignMessage(message, privateKey) {
-    const { hashBuffer } = await hashMessage(message)
-
-    const key = await importRSAKey(privateKey)
-    const signatureBuffer = await crypto.subtle.sign(
-        {
-            name: rsa_algorithm,
-            saltLength: rsapss_salt_len
-        },
-        key,
-        hashBuffer
-    );
-    const exportedAsString = String.fromCharCode(...new Uint8Array(signatureBuffer));
-    const exportedAsBase64 = btoa(exportedAsString);
-    return exportedAsBase64
+    try {
+        const { hashBuffer } = await hashMessage(message)
+        const key = await importRSAKey(privateKey)
+        const signatureBuffer = await crypto.subtle.sign(
+            {
+                name: rsa_algorithm,
+                saltLength: rsapss_salt_len
+            },
+            key,
+            hashBuffer
+        );
+        const exportedAsString = String.fromCharCode(...new Uint8Array(signatureBuffer));
+        const exportedAsBase64 = btoa(exportedAsString);
+        return exportedAsBase64
+    } catch (error) { return '' }
 }
 
 
 async function verifySignature(publicKey, signature, data) {
-    const signatureBuffer = base64ToBuffer(signature)
-    let importedKey = await importRSAKey(publicKey, 'verify', rsa_publickey_format)
-    const { hashBuffer } = await hashMessage(data)
-
-    return await window.crypto.subtle.verify(
-        {
-            name: rsa_algorithm,
-            saltLength: rsapss_salt_len,
-        },
-        importedKey,
-        signatureBuffer,
-        hashBuffer,
-    );
+    try {
+        const signatureBuffer = base64ToBuffer(signature)
+        const importedKey = await importRSAKey(publicKey, 'verify', rsa_publickey_format)
+        const { hashBuffer } = await hashMessage(data)
+        return await window.crypto.subtle.verify(
+            {
+                name: rsa_algorithm,
+                saltLength: rsapss_salt_len,
+            },
+            importedKey,
+            signatureBuffer,
+            hashBuffer,
+        );
+    } catch (error) { return '' }
 }
 
-// ....Diffie-Hellman key exchange....
 
+// ....Diffie-Hellman key exchange....
 // Function to calculate (base^exp) % mod
 function power(base, exp, mod) {
     if (exp === 1) return base % mod;

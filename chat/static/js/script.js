@@ -1,29 +1,3 @@
-// async function makeAPIcall(options) {
-//   const { url, method, headers } = options
-//   if (!url || !method || !headers) {
-//     console.log('makeAPIcall: api call options incomplete')
-//     return { error: { message: 'An error occured. Try again later' } }
-//   }
-
-//   try {
-//     let response = await fetch(url, {
-//       method,
-//       headers
-//     })
-
-//     const responseData = await response.json()
-//     // responseData.status = response.status
-//     // console.log('makeAPIcall:', responseData)
-//     return responseData
-//   }
-
-//   catch (err) {
-//     console.log('form-submit-error: ', err.message)
-//     return { error: { message: 'An error occured. Try again later' } }
-//   }
-
-// }
-
 
 function getCookie(name) {
   let cookieValue = null;
@@ -96,7 +70,6 @@ function clearMessageRequest() {
   const roomname = sessionStorage.getItem('roomname')
   if (!roomname) return
   const csrftoken = getCookie('csrftoken');
-  console.log('csrftoken:', csrftoken)
   var data = new FormData();
   data.append('csrfmiddlewaretoken', csrftoken);
   this.navigator.sendBeacon(`/chat/${roomname}/clear/`, data)
@@ -118,7 +91,6 @@ async function showMessage(socket, data) {
   let plainText = message
   const { dhSharedKeyName } = getDHKeysName()
   const chats_div = document.getElementById("chats-container")
-  const roomname = sessionStorage.getItem('roomname')
   const dhSharedKey = sessionStorage.getItem(dhSharedKeyName)
   const publicKeyB = sessionStorage.getItem('publicKeyB')
 
@@ -129,14 +101,16 @@ async function showMessage(socket, data) {
     return socket.readyState == 1 && socket.close()
   }
 
-  if (digitalSignature && digitalSignature.length > 10 && sender !== username) {
+  if (digitalSignature && sender !== username) {
     const isHashVerified = await verifySignature(publicKeyB, digitalSignature, plainText)
     if (!isHashVerified) {
       console.log('isHashVerified: ', ' -> message signature verification failed')
-      logMsgOnPage(`Message signature from '${sender}' verification failed.`)
+      logMsgOnPage(`Message signature of '${sender}' verification failed.`)
+      clearMessageRequest()
+      socket.send(JSON.stringify(getMessageDetail('partner_disconnect', 'handleDisconnect')))
       return socket.readyState == 1 && socket.close()
     }
-    console.log(`Message signature from '${sender}' verification successful.`)
+    console.log(`Message signature of '${sender}' verified successfully.`)
   }
 
   chats_div.innerHTML += `<div class="single-message ${sender == username && 'sent'}">
