@@ -45,7 +45,15 @@ message_form.addEventListener("submit", async function (event) {
   }
 
   const signedMessage = await digitalSignMessage(message_sent, privateKey)
+  if (!signedMessage) {
+    return logMsgOnPage(`Failed to sign message with ${username}'s private key`)
+  }
+
   let encryptedMsg = await encryptAES(message_sent, dhSharedKey, crypto_iv)
+  if (!encryptedMsg) {
+    return logMsgOnPage(`Message encryption by '${username}' failed`)
+  }
+  
   console.log("Sending message... ", encryptedMsg);
   logMsgOnPage()
   socket.send(

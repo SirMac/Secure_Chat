@@ -171,7 +171,10 @@ async function hashMessage(text) {
             hashHex,
             hashBuffer
         }
-    } catch (error) { return '' }
+    } catch (error) { 
+        console.log('hashMessage-Error:', error.message)
+        return '' 
+    }
 }
 
 
@@ -191,7 +194,10 @@ async function digitalSignMessage(message, privateKey) {
         const exportedAsString = String.fromCharCode(...new Uint8Array(signatureBuffer));
         const exportedAsBase64 = btoa(exportedAsString);
         return exportedAsBase64
-    } catch (error) { return '' }
+    } catch (error) { 
+        console.log('digitalSignMessage-Error: ', error.message)
+        return '' 
+    }
 }
 
 
@@ -209,7 +215,10 @@ async function verifySignature(publicKey, signature, data) {
             signatureBuffer,
             hashBuffer,
         );
-    } catch (error) { return '' }
+    } catch (error) { 
+        console.log('verifySignature-Error: ', error.message)
+        return '' 
+    }
 }
 
 

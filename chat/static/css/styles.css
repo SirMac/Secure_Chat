@@ -1341,11 +1341,11 @@ nav {
   /* margin-top: 1rem; */
   border: 0;
   outline: 0;
-  padding: 0.5rem 0.75rem;
-  background-color: #1b1f24;
-  border-radius: 2rem;
+  padding: 0.6rem 0.3rem;
+  background-color: darkolivegreen !important;
+  border-radius: 0.3rem;
   color: #ffffff;
-  font-size: 1.25rem;
+  font-size: 0.8rem;
   font-weight: bold;
   transition: 0.25s ease;
   cursor: pointer;
